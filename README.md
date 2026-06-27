@@ -1,66 +1,125 @@
-## Foundry
+## Gym Blockchain Tycoon
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A simple on-chain idle game built with Solidity, where players earn tokens from NFTs, upgrade them over time, and trade them with other players.
 
-Foundry consists of:
+The goal of this project was to practice smart contract architecture, contract interaction, testing, and security best practices using Foundry and OpenZeppelin.
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Features
+- Start playing by minting your initial NFT collection.
+- Earn ERC20 rewards once per day based on your NFTs.
+- Upgrade NFTs through a staking mechanism that takes time.
+- Cancel upgrades with a partial refund.
+- Buy and sell NFTs through an on-chain marketplace.
+- Different NFT types with different progression mechanics.
+- Basic protections against common vulnerabilities (reentrancy, access control, etc.).
 
-## Documentation
+### Project Structure
+contracts/
+│
+├── Main.sol             # Main entry point for the game
+├── StakeUpgrade.sol     # Handles NFT upgrades
+├── Trades.sol           # Marketplace logic
+├── myNFT.sol            # ERC721 implementation
+├── myToken.sol          # ERC20 reward token
+├── IMain.sol            
+├── IStakeUpgrade.sol     
+├── ITrades.sol           
+├── ImyNFT.sol           
+└── ImyToken.sol          
 
-https://book.getfoundry.sh/
+tests/
+│
+└─── Main.t.sol
 
-## Usage
+script/
+│
+└── deploy.s.sol
 
-### Build
+### How it Works
+1. Start Playing
 
-```shell
-$ forge build
-```
+Calling start() mints the initial NFT collection for the player and registers them as an active player.
 
-### Test
+2. Daily Rewards
 
-```shell
-$ forge test
-```
+Players can claim rewards once every 24 hours.
 
-### Format
+The reward depends on:
 
-```shell
-$ forge fmt
-```
+Number of NFTs owned
+NFT levels
+NFT type
+Whether an NFT is currently upgrading
 
-### Gas Snapshots
+Base NFTs generate production, while multiplier NFTs increase the total production.
 
-```shell
-$ forge snapshot
-```
+3. NFT Upgrades
 
-### Anvil
+Players can spend tokens to upgrade an NFT.
 
-```shell
-$ anvil
-```
+The process consists of:
 
-### Deploy
+Deposit the required amount of tokens.
+The NFT enters an upgrading state.
+Wait for the upgrade timer to finish.
+Claim the upgrade.
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+If the player changes their mind, they can cancel the upgrade and receive a partial refund.
 
-### Cast
+4. Marketplace
 
-```shell
-$ cast <subcommand>
-```
+Players can:
 
-### Help
+List NFTs for sale
+Buy NFTs from other players
+Cancel listings
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+When purchasing an NFT, buyers pay:
+
+Listing price
+Additional protocol fee based on the NFT value
+Smart Contract Design
+
+The system is divided into several contracts:
+
+#### Main
+
+Acts as the entry point for the game.
+
+Responsible for:
+
+Starting the game
+Claiming rewards
+Connecting all other contracts
+
+#### StakeUpgrade
+
+Responsible for:
+
+Upgrade deposits
+Upgrade completion (Lvl Up)
+Upgrade cancellation
+
+#### Trades
+
+Responsible for:
+
+NFT listings
+Purchases
+Listing cancellation
+
+#### MyToken (ERC20)
+
+Used as the in-game currency.
+
+Players earn tokens from gameplay and spend them on upgrades and marketplace purchases.
+
+#### myNFT (ERC721)
+
+Represents production assets.
+
+Each NFT stores:
+
+Level
+Type (Base or Multiplier)
+Upgrade status
