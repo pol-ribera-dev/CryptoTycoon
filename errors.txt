@@ -1,0 +1,14 @@
+01. You have already started
+02. Reward is not avaible yet
+03. You are not the owner of the NFT
+04. Listing does not exist
+05. You are not the listing owner
+06. NFT at max Lvl
+07. Not enough funds 
+08. Not allowed
+09. Level can not be 0
+11. Token is already in staking state
+12. Token is not staking yet
+13. You have to wait
+14. Price can not be 0
+15. You are not playing
