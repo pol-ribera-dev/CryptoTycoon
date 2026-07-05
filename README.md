@@ -6,6 +6,8 @@ The goal of this project was to practice smart contract architecture, contract i
 
 There are 69 functions that ensures that all the project is secure and works perfect.
 
+The revert errors are represented by numbers to save gas, you can check the error description in the document errors.txt
+
 ### Features
 - Start playing by minting your initial NFT collection.
 - Earn ERC20 rewards once per day based on your NFTs.
