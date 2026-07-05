@@ -5,8 +5,8 @@ interface ITrades {
 
     function listNFT(address _user, uint256 _tokenId, uint256 _price) external;
 
-    function buyNFT(address _user, uint256 _tokenId) external;
-
     function cancelList(address _user, uint256 _tokenId) external;
+    
+    function buyNFT(address _user, uint256 _tokenId) external;
 
 }

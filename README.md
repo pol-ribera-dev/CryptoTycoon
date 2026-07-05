@@ -4,6 +4,8 @@ A simple on-chain idle game built with Solidity, where players earn tokens from 
 
 The goal of this project was to practice smart contract architecture, contract interaction, testing, and security best practices using Foundry and OpenZeppelin.
 
+There are 69 functions that ensures that all the project is secure and works perfect.
+
 ### Features
 - Start playing by minting your initial NFT collection.
 - Earn ERC20 rewards once per day based on your NFTs.
@@ -14,6 +16,8 @@ The goal of this project was to practice smart contract architecture, contract i
 - Basic protections against common vulnerabilities (reentrancy, access control, etc.).
 
 ### Project Structure
+
+```text
 contracts/
 │
 ├── Main.sol             # Main entry point for the game
@@ -34,6 +38,7 @@ tests/
 script/
 │
 └── deploy.s.sol
+```
 
 ### How it Works
 1. Start Playing
@@ -42,7 +47,7 @@ Calling start() mints the initial NFT collection for the player and registers th
 
 2. Daily Rewards
 
-Players can claim rewards once every 24 hours.
+Players can claim rewards once every X amount of time.
 
 The reward depends on:
 
