@@ -8,32 +8,46 @@ import "../src/Main.sol";
 //Test of Main.sol with 100% coverage
 
 contract MainTest is Test {
-
     string tokenName = "Gains";
     string tokenSymbol = "ATP";
     string NFTName = "Train";
     string NFTSymbol = "KG";
     string baseUri = "bafybeia4v7eadp6r4nuf3ei5cucf62hwigari6kbvbqggkg5e2dfxwqhxe/";
-    uint feeRefund = 10;
+    uint256 feeRefund = 10;
     uint256 upgradePeriodPerLvl = 1 days;
     uint256 boostPercentagePerLvl = 5;
-    uint256 baseProductionPerLvl = 1000; 
+    uint256 baseProductionPerLvl = 1000;
     uint256 relationPriceProduction = 10;
     uint256 maxLvlBase = 10;
-    uint256 maxLvlMulti = 20; 
+    uint256 maxLvlMulti = 20;
     uint256 amountBase = 5; //!0
-    uint256 amountMulti = 1;//!0 
+    uint256 amountMulti = 1; //!0
 
     MainGym gym;
-    
+
     address randomUser = vm.addr(1);
     address randomUser2 = vm.addr(2);
 
     function setUp() public {
-        gym = new MainGym(tokenName, tokenSymbol, NFTName, NFTSymbol, baseUri, feeRefund, upgradePeriodPerLvl, boostPercentagePerLvl, baseProductionPerLvl, relationPriceProduction, maxLvlBase, maxLvlMulti, amountBase, amountMulti);
+        gym = new MainGym(
+            tokenName,
+            tokenSymbol,
+            NFTName,
+            NFTSymbol,
+            baseUri,
+            feeRefund,
+            upgradePeriodPerLvl,
+            boostPercentagePerLvl,
+            baseProductionPerLvl,
+            relationPriceProduction,
+            maxLvlBase,
+            maxLvlMulti,
+            amountBase,
+            amountMulti
+        );
     }
 
-    function testBankCorrectlyDeployed() external view { 
+    function testBankCorrectlyDeployed() external view {
         assertTrue(address(gym.token()) != address(0));
         assertTrue(address(gym.nft()) != address(0));
         assertTrue(address(gym.upgrade()) != address(0));
@@ -51,7 +65,7 @@ contract MainTest is Test {
 
     function testStartCorrect() external {
         vm.startPrank(randomUser);
-        
+
         uint256 balanceNFTBefore = gym.nft().balanceOf(randomUser);
         bool userPlayingBefore = gym.playing(randomUser);
 
@@ -67,17 +81,17 @@ contract MainTest is Test {
         assert(userPlayingAfter);
         assertEq(balanceNFTBefore, 0);
         assertEq(balanceNFTAfter, amountBase + amountMulti);
-        
+
         vm.stopPrank();
     }
 
     function testNotPlaying() external {
         vm.startPrank(randomUser);
-        
+
         gym.start();
 
         vm.expectRevert(bytes("01"));
-        
+
         gym.start();
 
         vm.stopPrank();
@@ -88,51 +102,50 @@ contract MainTest is Test {
 
         gym.start();
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
-        
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
+
         vm.warp(block.timestamp + 1.1 days);
         gym.getRewards();
-        
+
         vm.warp(block.timestamp + 1.2 days);
         gym.getRewards();
-       
 
-        uint tokensAfter = gym.token().balanceOf(randomUser);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
 
-        uint expectedAmount = amountBase * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti);
+        uint256 expectedAmount = amountBase * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti);
 
-        assertEq(tokensAfter - tokensBefore, expectedAmount/100*2);
+        assertEq(tokensAfter - tokensBefore, expectedAmount / 100 * 2);
         assertEq(block.timestamp, gym.timeLastReward(randomUser));
 
         vm.stopPrank();
     }
 
-    function testGetRewardsAllLvl1Correct() external{ 
+    function testGetRewardsAllLvl1Correct() external {
         vm.startPrank(randomUser);
 
         gym.start();
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
 
         vm.warp(block.timestamp + 2 days);
 
         gym.getRewards();
 
-        uint tokensAfter = gym.token().balanceOf(randomUser);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
 
-        uint expectedAmount = amountBase * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti);
+        uint256 expectedAmount = amountBase * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti);
 
-        assertEq(tokensAfter - tokensBefore, expectedAmount/100);
+        assertEq(tokensAfter - tokensBefore, expectedAmount / 100);
 
         vm.stopPrank();
     }
 
-    function testGetRewardsBaseMaxLvlCorrect() external{
+    function testGetRewardsBaseMaxLvlCorrect() external {
         vm.startPrank(randomUser);
         gym.start();
         vm.stopPrank();
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
 
         vm.startPrank(address(gym.upgrade()));
         for (uint256 i = 1; i < maxLvlBase; i++) {
@@ -144,16 +157,17 @@ contract MainTest is Test {
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
 
-        uint tokensAfter = gym.token().balanceOf(randomUser);
-        uint expectedAmount = (baseProductionPerLvl * maxLvlBase + (amountBase - 1) * baseProductionPerLvl) * (100 + boostPercentagePerLvl * amountMulti);
-        assertEq(tokensAfter - tokensBefore, expectedAmount/100);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
+        uint256 expectedAmount = (baseProductionPerLvl * maxLvlBase + (amountBase - 1) * baseProductionPerLvl)
+            * (100 + boostPercentagePerLvl * amountMulti);
+        assertEq(tokensAfter - tokensBefore, expectedAmount / 100);
         vm.stopPrank();
     }
 
-    function testGetRewardsMultiMaxLvlCorrect() external{
+    function testGetRewardsMultiMaxLvlCorrect() external {
         vm.startPrank(randomUser);
         gym.start();
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
         vm.stopPrank();
 
         vm.startPrank(address(gym.upgrade()));
@@ -166,19 +180,19 @@ contract MainTest is Test {
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
 
-        uint tokensAfter = gym.token().balanceOf(randomUser);
-        uint expectedAmount = amountBase * baseProductionPerLvl * (100 + boostPercentagePerLvl * maxLvlMulti);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
+        uint256 expectedAmount = amountBase * baseProductionPerLvl * (100 + boostPercentagePerLvl * maxLvlMulti);
 
-        if (amountMulti == 1){
-            assertEq(tokensAfter - tokensBefore, expectedAmount/100);
-        } else{
-            assert(tokensAfter - tokensBefore > expectedAmount/100);
+        if (amountMulti == 1) {
+            assertEq(tokensAfter - tokensBefore, expectedAmount / 100);
+        } else {
+            assert(tokensAfter - tokensBefore > expectedAmount / 100);
         }
-            
+
         vm.stopPrank();
     }
 
-    function testGetRewardsMoreMultiCorrect() external{
+    function testGetRewardsMoreMultiCorrect() external {
         vm.startPrank(randomUser);
         gym.start();
         vm.stopPrank();
@@ -187,7 +201,7 @@ contract MainTest is Test {
         gym.nft().mintAll(randomUser);
         vm.stopPrank();
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
 
         vm.startPrank(randomUser);
 
@@ -195,16 +209,16 @@ contract MainTest is Test {
 
         gym.getRewards();
 
-        uint tokensAfter = gym.token().balanceOf(randomUser);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
 
-        uint expectedAmount = amountBase * 2 * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti * 2);
+        uint256 expectedAmount = amountBase * 2 * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti * 2);
 
-        assertEq(tokensAfter - tokensBefore, expectedAmount/100);
+        assertEq(tokensAfter - tokensBefore, expectedAmount / 100);
 
         vm.stopPrank();
     }
 
-   function testHasToBePlayingRewards() external{
+    function testHasToBePlayingRewards() external {
         vm.startPrank(randomUser);
 
         vm.warp(block.timestamp + 2 days);
@@ -216,7 +230,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testHasToBePlayingList() external{
+    function testHasToBePlayingList() external {
         vm.startPrank(randomUser);
 
         vm.expectRevert(bytes("15"));
@@ -226,7 +240,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testHasToBePlayingCancelList() external{
+    function testHasToBePlayingCancelList() external {
         vm.startPrank(randomUser);
 
         vm.expectRevert(bytes("15"));
@@ -236,7 +250,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testHasToBePlayingBuy() external{
+    function testHasToBePlayingBuy() external {
         vm.startPrank(randomUser);
 
         vm.expectRevert(bytes("15"));
@@ -246,7 +260,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testHasToBePlayingDeposit() external{
+    function testHasToBePlayingDeposit() external {
         vm.startPrank(randomUser);
 
         vm.expectRevert(bytes("15"));
@@ -256,7 +270,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testHasToBePlayingCancelUpgrade() external{
+    function testHasToBePlayingCancelUpgrade() external {
         vm.startPrank(randomUser);
 
         vm.expectRevert(bytes("15"));
@@ -266,7 +280,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testHasToBePlayingClaim() external{
+    function testHasToBePlayingClaim() external {
         vm.startPrank(randomUser);
 
         vm.expectRevert(bytes("15"));
@@ -276,8 +290,7 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-
-    function testNotWaiting() external{
+    function testNotWaiting() external {
         vm.startPrank(randomUser);
 
         gym.start();
@@ -285,7 +298,7 @@ contract MainTest is Test {
         vm.warp(block.timestamp + 2 days);
 
         gym.getRewards();
-        
+
         vm.expectRevert(bytes("02"));
 
         gym.getRewards();
@@ -296,23 +309,23 @@ contract MainTest is Test {
     // MARKETPLACE
 
     // List:
-    
-    function testJustMainCanList() external{
-        uint NFTid = 0;
-        uint price = 1;
+
+    function testJustMainCanList() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
-        Trades a =  gym.marketplace();
+        Trades a = gym.marketplace();
         vm.expectRevert(bytes("08"));
         a.listNFT(randomUser, NFTid, price);
         vm.stopPrank();
     }
 
-    function testListCorrect() external{ 
-        uint NFTid = 0;
-        uint price = 1;
+    function testListCorrect() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -320,15 +333,15 @@ contract MainTest is Test {
         gym.listNFT(NFTid, price);
         vm.stopPrank();
 
-        (address lister_, uint price_)  = gym.marketplace().listing(NFTid);
+        (address lister_, uint256 price_) = gym.marketplace().listing(NFTid);
 
-        assertEq(lister_ ,randomUser);
-        assertEq(price_ , price);
+        assertEq(lister_, randomUser);
+        assertEq(price_, price);
     }
 
-    function testShouldRevertIfPriceIsZero() external{
-        uint NFTid = 0;
-        uint price = 0;
+    function testShouldRevertIfPriceIsZero() external {
+        uint256 NFTid = 0;
+        uint256 price = 0;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -339,8 +352,8 @@ contract MainTest is Test {
     }
 
     function testListShouldRevertIfNotOwner() public {
-        uint NFTid = 0;
-        uint price = 1;
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -357,8 +370,8 @@ contract MainTest is Test {
     }
 
     function testListShouldRevertIfNotExist() public {
-        uint NFTid = 99;
-        uint price = 1;
+        uint256 NFTid = 99;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -369,49 +382,48 @@ contract MainTest is Test {
 
     // Cancel List:
 
-    function testJustMainCanCancelList() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testJustMainCanCancelList() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         gym.listNFT(NFTid, price);
 
-        Trades a =  gym.marketplace();
+        Trades a = gym.marketplace();
         vm.expectRevert(bytes("08"));
         a.cancelList(randomUser, NFTid);
         vm.stopPrank();
     }
 
-    function testCancelListCorrect() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testCancelListCorrect() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         gym.listNFT(NFTid, price);
 
-        (address listerBefore_, uint priceBefore_)  = gym.marketplace().listing(NFTid);
-
+        (address listerBefore_, uint256 priceBefore_) = gym.marketplace().listing(NFTid);
 
         gym.cancelList(NFTid);
         vm.stopPrank();
 
-        (address listerAfter_, uint priceAfter_)  = gym.marketplace().listing(NFTid);
+        (address listerAfter_, uint256 priceAfter_) = gym.marketplace().listing(NFTid);
 
-        assertEq(listerBefore_ ,randomUser);
-        assertEq(priceBefore_ , price);
+        assertEq(listerBefore_, randomUser);
+        assertEq(priceBefore_, price);
 
-        assertEq(listerAfter_ , address(0));
-        assertEq(priceAfter_ , 0);
+        assertEq(listerAfter_, address(0));
+        assertEq(priceAfter_, 0);
     }
 
-    function testCancelListShouldRevertIfNFTNotListed() external{
-        uint NFTid = 0;
-        uint price = 1; 
-        uint NFTNotListed = 1;
+    function testCancelListShouldRevertIfNFTNotListed() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
+        uint256 NFTNotListed = 1;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -423,10 +435,10 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testCancelListShouldRevertIfNFTNotExist() external{
-        uint NFTid = 0;
-        uint price = 1; 
-        uint NFTNonExistent = 99;
+    function testCancelListShouldRevertIfNFTNotExist() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
+        uint256 NFTNonExistent = 99;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -439,9 +451,9 @@ contract MainTest is Test {
     }
 
     function testCancelListShouldRevertIfNotOwner() public {
-        uint NFTid = 0;
-        uint price = 1;
-        uint otherNFTid = 7;
+        uint256 NFTid = 0;
+        uint256 price = 1;
+        uint256 otherNFTid = 7;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -461,40 +473,39 @@ contract MainTest is Test {
 
     // Buy:
 
-    function testJustMainCanBuy() external{
-       uint NFTid = 0;
-        uint price = 1;
+    function testJustMainCanBuy() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
 
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.stopPrank();
 
         vm.startPrank(randomUser2);
         gym.start();
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
-        
-        Trades a =  gym.marketplace();
+
+        Trades a = gym.marketplace();
         vm.expectRevert(bytes("08"));
         a.buyNFT(randomUser, NFTid);
         vm.stopPrank();
-
     }
 
-    function testBuyCorrect() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testBuyCorrect() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
 
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.stopPrank();
 
         vm.startPrank(randomUser2);
@@ -502,78 +513,77 @@ contract MainTest is Test {
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
 
-        uint tokensBeforeSeller = gym.token().balanceOf(randomUser);
-        uint tokensBeforeBuyer = gym.token().balanceOf(randomUser2);
-        (address listerBefore_, uint priceBefore_)  = gym.marketplace().listing(NFTid);
+        uint256 tokensBeforeSeller = gym.token().balanceOf(randomUser);
+        uint256 tokensBeforeBuyer = gym.token().balanceOf(randomUser2);
+        (address listerBefore_, uint256 priceBefore_) = gym.marketplace().listing(NFTid);
         address ownerBefore = gym.nft().ownerOf(NFTid);
-        
+
         gym.buyNFT(NFTid);
         vm.stopPrank();
 
-        uint tokensAfterSeller = gym.token().balanceOf(randomUser);
-        uint tokensAfterBuyer = gym.token().balanceOf(randomUser2);
-        (address listerAfter_, uint priceAfter_)  = gym.marketplace().listing(NFTid);
+        uint256 tokensAfterSeller = gym.token().balanceOf(randomUser);
+        uint256 tokensAfterBuyer = gym.token().balanceOf(randomUser2);
+        (address listerAfter_, uint256 priceAfter_) = gym.marketplace().listing(NFTid);
         address ownerAfter = gym.nft().ownerOf(NFTid);
-        uint extraPrice = gym.nft().getPrice(NFTid) / relationPriceProduction;
+        uint256 extraPrice = gym.nft().getPrice(NFTid) / relationPriceProduction;
 
-        assertEq(listerBefore_ ,randomUser);
-        assertEq(priceBefore_ , price);
+        assertEq(listerBefore_, randomUser);
+        assertEq(priceBefore_, price);
 
-        assertEq(listerAfter_ , address(0));
-        assertEq(priceAfter_ , 0);
+        assertEq(listerAfter_, address(0));
+        assertEq(priceAfter_, 0);
 
         assertEq(tokensAfterSeller - tokensBeforeSeller, price);
         assertEq(tokensBeforeBuyer - tokensAfterBuyer, price + extraPrice);
 
-        assertEq(ownerBefore , randomUser);
-        assertEq(ownerAfter , randomUser2);
-    } 
+        assertEq(ownerBefore, randomUser);
+        assertEq(ownerAfter, randomUser2);
+    }
 
-    function testBuyOwnself() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testBuyOwnself() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
 
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
-        (address listerBefore_, uint priceBefore_)  = gym.marketplace().listing(NFTid);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
+        (address listerBefore_, uint256 priceBefore_) = gym.marketplace().listing(NFTid);
         address ownerBefore = gym.nft().ownerOf(NFTid);
-        
+
         gym.buyNFT(NFTid);
         vm.stopPrank();
 
-        uint tokensAfter = gym.token().balanceOf(randomUser);
-        (address listerAfter_, uint priceAfter_)  = gym.marketplace().listing(NFTid);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
+        (address listerAfter_, uint256 priceAfter_) = gym.marketplace().listing(NFTid);
         address ownerAfter = gym.nft().ownerOf(NFTid);
-        uint extraPrice = gym.nft().getPrice(NFTid) / relationPriceProduction;
+        uint256 extraPrice = gym.nft().getPrice(NFTid) / relationPriceProduction;
 
+        assertEq(listerBefore_, randomUser);
+        assertEq(priceBefore_, price);
 
-        assertEq(listerBefore_ ,randomUser);
-        assertEq(priceBefore_ , price);
-
-        assertEq(listerAfter_ , address(0));
-        assertEq(priceAfter_ , 0);
+        assertEq(listerAfter_, address(0));
+        assertEq(priceAfter_, 0);
 
         assertEq(tokensAfter + extraPrice, tokensBefore);
 
-        assertEq(ownerBefore , randomUser);
-        assertEq(ownerAfter , randomUser);
-    } 
+        assertEq(ownerBefore, randomUser);
+        assertEq(ownerAfter, randomUser);
+    }
 
-    function testRevertIfNotApprove() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testRevertIfNotApprove() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
-        
+
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         gym.listNFT(NFTid, price);
         vm.stopPrank();
@@ -586,12 +596,11 @@ contract MainTest is Test {
 
         gym.buyNFT(NFTid);
         vm.stopPrank();
-
     }
 
-    function testRevertIfNotEnoughFunds() external{
-        uint NFTid = 0;
-        uint price = 1000000;
+    function testRevertIfNotEnoughFunds() external {
+        uint256 NFTid = 0;
+        uint256 price = 1000000;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -613,9 +622,9 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testRevertIfNotExtraFunds() external{
-        uint NFTid = 0;
-       
+    function testRevertIfNotExtraFunds() external {
+        uint256 NFTid = 0;
+
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
@@ -627,11 +636,11 @@ contract MainTest is Test {
         gym.getRewards();
         vm.stopPrank();
 
-        uint price = gym.token().balanceOf(randomUser2);
+        uint256 price = gym.token().balanceOf(randomUser2);
 
         vm.startPrank(randomUser);
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.stopPrank();
 
         vm.startPrank(randomUser2);
@@ -640,17 +649,17 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testCanNotBuyUnlistedNFT() external{
-        uint NFTid = 0;
-        uint price = 1; 
-        uint NFTNotListed = 1;
+    function testCanNotBuyUnlistedNFT() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
+        uint256 NFTNotListed = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
 
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.stopPrank();
 
         vm.startPrank(randomUser2);
@@ -667,8 +676,8 @@ contract MainTest is Test {
 
     // Deposit:
 
-    function testJustMainCanDeposit() external{ 
-        uint NFTid = 0;
+    function testJustMainCanDeposit() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -677,16 +686,15 @@ contract MainTest is Test {
         vm.startPrank(randomUser);
         gym.start();
 
-        StakeUpgrade a =  gym.upgrade();
+        StakeUpgrade a = gym.upgrade();
         vm.expectRevert(bytes("08"));
 
         a.depositToUpgrade(randomUser, NFTid);
         vm.stopPrank();
-        
     }
 
-    function testDepositCorrect() external{ 
-        uint NFTid = 0;
+    function testDepositCorrect() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -696,25 +704,24 @@ contract MainTest is Test {
         gym.start();
 
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
-        (, , bool updatingBefore) = gym.nft().IdToData(NFTid);
+        (,, bool updatingBefore) = gym.nft().IdToData(NFTid);
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
 
         gym.depositToUpgrade(NFTid);
         vm.stopPrank();
-        
-        (, , bool updatingAfter) = gym.nft().IdToData(NFTid);
-        uint tokensAfter = gym.token().balanceOf(randomUser);
-        
+
+        (,, bool updatingAfter) = gym.nft().IdToData(NFTid);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
+
         assertEq(tokensBefore - tokensAfter, gym.nft().getPrice(NFTid));
         assertFalse(updatingBefore);
         assertTrue(updatingAfter);
         assertEq(gym.upgrade().elapseTimeNFT(NFTid), block.timestamp);
-
     }
 
-    function testDepositRevertIfNotOwner() external{ 
-        uint NFTid = 0;
+    function testDepositRevertIfNotOwner() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser2, 15000);
@@ -732,8 +739,8 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testDepositRevertIfNotEnoughMoney() external{ 
-        uint NFTid = 0;
+    function testDepositRevertIfNotEnoughMoney() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(randomUser);
         gym.start();
@@ -749,9 +756,9 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testCanNotDepositWhileUpdating() external{ 
-        uint NFTid = 0;
-        
+    function testCanNotDepositWhileUpdating() external {
+        uint256 NFTid = 0;
+
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 30000);
         vm.stopPrank();
@@ -760,35 +767,33 @@ contract MainTest is Test {
         gym.start();
 
         gym.depositToUpgrade(NFTid);
-        
+
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
-        
-        (, , bool updating) = gym.nft().IdToData(NFTid);
+
+        (,, bool updating) = gym.nft().IdToData(NFTid);
         assertTrue(updating);
         assert(gym.nft().getPrice(NFTid) < gym.token().balanceOf(randomUser));
 
-
         vm.expectRevert(bytes("11"));
         gym.depositToUpgrade(NFTid);
-        
+
         vm.stopPrank();
     }
 
-
-    function testCanNotBeUpgradedBase() external{
-        uint NFTid = 0;
+    function testCanNotBeUpgradedBase() external {
+        uint256 NFTid = 0;
         vm.startPrank(randomUser);
         gym.start();
         vm.stopPrank();
 
         vm.startPrank(address(gym.upgrade()));
-        
+
         for (uint256 i = 1; i < maxLvlBase; i++) {
             gym.nft().lvlUp(NFTid);
         }
         vm.stopPrank();
 
-        (uint lvl, ,) = gym.nft().IdToData(NFTid);
+        (uint256 lvl,,) = gym.nft().IdToData(NFTid);
         assertEq(lvl, maxLvlBase);
 
         vm.startPrank(randomUser);
@@ -799,20 +804,20 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testCanNotBeUpgradedMulti() external{
-        uint NFTid = amountBase;
+    function testCanNotBeUpgradedMulti() external {
+        uint256 NFTid = amountBase;
         vm.startPrank(randomUser);
         gym.start();
         vm.stopPrank();
 
         vm.startPrank(address(gym.upgrade()));
-        
+
         for (uint256 i = 1; i < maxLvlMulti; i++) {
             gym.nft().lvlUp(NFTid);
         }
         vm.stopPrank();
 
-        (uint lvl, ,) = gym.nft().IdToData(NFTid);
+        (uint256 lvl,,) = gym.nft().IdToData(NFTid);
         assertEq(lvl, maxLvlMulti);
 
         vm.startPrank(randomUser);
@@ -825,8 +830,8 @@ contract MainTest is Test {
 
     // Cancel Upgrade:
 
-    function testJustMainCanCancelUpgrade() external{ 
-        uint NFTid = 0;
+    function testJustMainCanCancelUpgrade() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -837,15 +842,15 @@ contract MainTest is Test {
 
         gym.depositToUpgrade(NFTid);
 
-        StakeUpgrade a =  gym.upgrade();
+        StakeUpgrade a = gym.upgrade();
         vm.expectRevert(bytes("08"));
 
         a.cancelUpgrade(randomUser, NFTid);
         vm.stopPrank();
     }
 
-    function testCancelUpgradeCorrect() external{ 
-        uint NFTid = 0;
+    function testCancelUpgradeCorrect() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -854,30 +859,30 @@ contract MainTest is Test {
         vm.startPrank(randomUser);
         gym.start();
 
-
         gym.depositToUpgrade(NFTid);
-        
-        
-        (, , bool updatingBefore) = gym.nft().IdToData(NFTid);
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+
+        (,, bool updatingBefore) = gym.nft().IdToData(NFTid);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
-        
+
         gym.cancelUpgrade(NFTid);
 
-        (, , bool updatingAfter) = gym.nft().IdToData(NFTid);
-        uint tokensAfter = gym.token().balanceOf(randomUser);
+        (,, bool updatingAfter) = gym.nft().IdToData(NFTid);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
 
         vm.stopPrank();
 
-
-        assert(tokensAfter - tokensBefore < gym.nft().getPrice(NFTid) && (tokensAfter - tokensBefore) * 10 > gym.nft().getPrice(NFTid) * 8);
+        assert(
+            tokensAfter - tokensBefore < gym.nft().getPrice(NFTid)
+                && (tokensAfter - tokensBefore) * 10 > gym.nft().getPrice(NFTid) * 8
+        );
         assertTrue(updatingBefore);
         assertFalse(updatingAfter);
         assertEq(gym.upgrade().elapseTimeNFT(NFTid), 0);
     }
 
-    function testCancelUpgradeRevertNotOwner() external{ 
-        uint NFTid = 0;
+    function testCancelUpgradeRevertNotOwner() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -887,7 +892,7 @@ contract MainTest is Test {
         gym.start();
 
         gym.depositToUpgrade(NFTid);
-        
+
         vm.stopPrank();
 
         vm.startPrank(randomUser2);
@@ -900,12 +905,12 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testCancelUpgradeRevertNotDeposed() external{ 
-        uint NFTid = 0;
+    function testCancelUpgradeRevertNotDeposed() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(randomUser);
         gym.start();
-        
+
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
 
         vm.expectRevert(bytes("12"));
@@ -915,8 +920,8 @@ contract MainTest is Test {
 
     // Claim:
 
-    function testJustMainCanClaim() external{ 
-        uint NFTid = 0;
+    function testJustMainCanClaim() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -929,15 +934,15 @@ contract MainTest is Test {
 
         vm.warp(block.timestamp + upgradePeriodPerLvl + 0.5 days);
 
-        StakeUpgrade a =  gym.upgrade();
+        StakeUpgrade a = gym.upgrade();
         vm.expectRevert(bytes("08"));
 
         a.claim(randomUser, NFTid);
         vm.stopPrank();
     }
 
-    function testClaimCorrect() external{ 
-        uint NFTid = 0;
+    function testClaimCorrect() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -947,18 +952,17 @@ contract MainTest is Test {
         gym.start();
 
         gym.depositToUpgrade(NFTid);
-        
-        
-        (uint8 lvlBefore, , bool updatingBefore) = gym.nft().IdToData(NFTid);
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+
+        (uint8 lvlBefore,, bool updatingBefore) = gym.nft().IdToData(NFTid);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
-        
+
         vm.warp(block.timestamp + upgradePeriodPerLvl + 0.5 days);
 
         gym.claim(NFTid);
 
-        (uint8 lvlAfter, , bool updatingAfter) = gym.nft().IdToData(NFTid);
-        uint tokensAfter = gym.token().balanceOf(randomUser);
+        (uint8 lvlAfter,, bool updatingAfter) = gym.nft().IdToData(NFTid);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
 
         vm.stopPrank();
 
@@ -969,8 +973,8 @@ contract MainTest is Test {
         assertEq(gym.upgrade().elapseTimeNFT(NFTid), 0);
     }
 
-    function testRevertIfClaimBeforeReady() external{ 
-        uint NFTid = 0;
+    function testRevertIfClaimBeforeReady() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -981,7 +985,7 @@ contract MainTest is Test {
 
         gym.depositToUpgrade(NFTid);
 
-        (, , bool updating) = gym.nft().IdToData(NFTid);
+        (,, bool updating) = gym.nft().IdToData(NFTid);
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         assertTrue(updating);
 
@@ -991,8 +995,8 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testLvlChangeClaimTime() external{ 
-        uint NFTid = 0;
+    function testLvlChangeClaimTime() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 100000);
@@ -1001,15 +1005,15 @@ contract MainTest is Test {
         vm.startPrank(randomUser);
         gym.start();
 
-        gym.depositToUpgrade(NFTid);  
+        gym.depositToUpgrade(NFTid);
         vm.warp(block.timestamp + upgradePeriodPerLvl + 0.1 days);
         gym.claim(NFTid);
 
-        gym.depositToUpgrade(NFTid);  
+        gym.depositToUpgrade(NFTid);
         vm.warp(block.timestamp + upgradePeriodPerLvl * 2 + 0.2 days);
         gym.claim(NFTid);
 
-        gym.depositToUpgrade(NFTid);  
+        gym.depositToUpgrade(NFTid);
         vm.warp(block.timestamp + upgradePeriodPerLvl + 0.3 days);
         vm.expectRevert(bytes("13"));
         gym.claim(NFTid);
@@ -1017,9 +1021,8 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-
-    function testClaimRevertNotOwner() external{ 
-        uint NFTid = 0;
+    function testClaimRevertNotOwner() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -1028,9 +1031,8 @@ contract MainTest is Test {
         vm.startPrank(randomUser);
         gym.start();
 
-
         gym.depositToUpgrade(NFTid);
-        
+
         vm.stopPrank();
 
         vm.warp(block.timestamp + 1.5 days);
@@ -1045,12 +1047,12 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testClaimRevertNotDeposed() external{ 
-        uint NFTid = 0;
+    function testClaimRevertNotDeposed() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(randomUser);
         gym.start();
-        
+
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         vm.warp(block.timestamp + 1.5 days);
 
@@ -1061,90 +1063,90 @@ contract MainTest is Test {
 
     // TOKEN
 
-    function testJustAllowedCanMint() external{ 
+    function testJustAllowedCanMint() external {
         myToken a = gym.token();
-        
+
         vm.startPrank(address(gym.upgrade()));
-        
+
         a.mint(randomUser, 100);
 
         vm.stopPrank();
         assertEq(a.balanceOf(randomUser), 100);
 
         vm.startPrank(address(gym));
-        
+
         a.mint(randomUser, 100);
 
         vm.stopPrank();
         assertEq(a.balanceOf(randomUser), 200);
 
         vm.startPrank(address(gym.marketplace()));
-        
+
         a.mint(randomUser, 100);
 
         vm.stopPrank();
         assertEq(a.balanceOf(randomUser), 300);
 
         vm.startPrank(randomUser);
-        
+
         vm.expectRevert(bytes("08"));
         a.mint(randomUser, 100);
 
         vm.stopPrank();
     }
 
-    function testJustUpgradeCanBurn() external{ 
+    function testJustUpgradeCanBurn() external {
         myToken a = gym.token();
-        
+
         vm.startPrank(address(gym.upgrade()));
-        
+
         a.mint(randomUser, 100);
         a.burn(randomUser, 40);
 
         vm.stopPrank();
-        
+
         assertEq(a.balanceOf(randomUser), 60);
 
         vm.startPrank(address(gym.marketplace()));
-        
+
         a.burn(randomUser, 10);
 
         vm.stopPrank();
-        
+
         assertEq(a.balanceOf(randomUser), 50);
 
         vm.startPrank(address(gym));
-        
+
         vm.expectRevert(bytes("08"));
         a.burn(randomUser, 40);
         vm.stopPrank();
     }
 
-    function testJustMainCanSetUpgrade() external{ 
+    function testJustMainCanSetUpgrade() external {
         myToken a = gym.token();
-        
+
         vm.startPrank(address(gym));
-        
+
         a.setUpgrade(address(gym));
 
         vm.stopPrank();
-        
+
         assertEq(a.upgrade(), address(gym));
 
         vm.startPrank(randomUser);
-        
+
         vm.expectRevert(bytes("08"));
         a.setUpgrade(randomUser);
         vm.stopPrank();
     }
 
-    function testJustMainCanSetTrades() external{ 
+    function testJustMainCanSetTrades() external {
         myToken a = gym.token();
-        
+
         vm.startPrank(address(gym));
         a.setTrades(address(gym));
         vm.stopPrank();
-        
+
         assertEq(a.trades(), address(gym));
 
         vm.startPrank(randomUser);
@@ -1160,12 +1162,11 @@ contract MainTest is Test {
         vm.startPrank(address(gym));
         a.mintAll(randomUser2);
         vm.stopPrank();
-
     }
 
     function testJustTradesCanSafeTransferNFT() external {
-        uint NFTid = 0;
-        uint NFTid2 = 1;
+        uint256 NFTid = 0;
+        uint256 NFTid2 = 1;
         myNFT a = gym.nft();
 
         vm.startPrank(address(gym));
@@ -1173,8 +1174,8 @@ contract MainTest is Test {
         vm.stopPrank();
 
         vm.startPrank(randomUser);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
-        gym.nft().approve(address(randomUser2), NFTid2); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
+        gym.nft().approve(address(randomUser2), NFTid2);
         vm.stopPrank();
 
         vm.startPrank(address(gym.marketplace()));
@@ -1190,14 +1191,14 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testJustMainCanMintNFT() external{ 
+    function testJustMainCanMintNFT() external {
         myNFT a = gym.nft();
 
         vm.startPrank(address(gym));
         a.mintAll(randomUser2);
         vm.stopPrank();
 
-        assertEq(a.balanceOf(randomUser2), amountMulti+amountBase);
+        assertEq(a.balanceOf(randomUser2), amountMulti + amountBase);
 
         vm.startPrank(randomUser);
         vm.expectRevert(bytes("08"));
@@ -1205,31 +1206,31 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testJustMainCanSetUpgradeNFT() external{ 
+    function testJustMainCanSetUpgradeNFT() external {
         myNFT a = gym.nft();
-        
+
         vm.startPrank(address(gym));
-        
+
         a.setUpgrade(address(gym));
 
         vm.stopPrank();
-        
+
         assertEq(a.upgrade(), address(gym));
 
         vm.startPrank(randomUser);
-        
+
         vm.expectRevert(bytes("08"));
         a.setUpgrade(randomUser);
         vm.stopPrank();
     }
 
-    function testJustMainCanSetTradesNFT() external{ 
+    function testJustMainCanSetTradesNFT() external {
         myNFT a = gym.nft();
-        
+
         vm.startPrank(address(gym));
         a.setTrades(address(gym));
         vm.stopPrank();
-        
+
         assertEq(a.trades(), address(gym));
 
         vm.startPrank(randomUser);
@@ -1238,48 +1239,46 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testJustUpgradeCanUpgradeNFT() external{ 
+    function testJustUpgradeCanUpgradeNFT() external {
         myNFT a = gym.nft();
-        
+
         vm.startPrank(address(gym.upgrade()));
-        
+
         a.setUpgrading(0, true);
 
         vm.stopPrank();
 
         vm.startPrank(randomUser);
-        
+
         vm.expectRevert(bytes("08"));
         a.setUpgrading(1, false);
         vm.stopPrank();
     }
 
-    function testJustUpgradeCanLvlUpNFT() external{ 
+    function testJustUpgradeCanLvlUpNFT() external {
         myNFT a = gym.nft();
-        
+
         vm.startPrank(address(gym.upgrade()));
-        
+
         a.lvlUp(0);
 
         vm.stopPrank();
 
         vm.startPrank(randomUser);
-        
+
         vm.expectRevert(bytes("08"));
         a.lvlUp(0);
         vm.stopPrank();
     }
 
-
-    function testGetPriceDiferentLvlNFT() external{
-        
+    function testGetPriceDiferentLvlNFT() external {
         vm.startPrank(address(gym));
         gym.nft().mintAll(randomUser);
         vm.stopPrank();
 
-        uint lvl1_base = gym.nft().getPrice(0);
+        uint256 lvl1_base = gym.nft().getPrice(0);
 
-        uint lvl1_multi = gym.nft().getPrice(amountBase);
+        uint256 lvl1_multi = gym.nft().getPrice(amountBase);
 
         vm.startPrank(address(gym.upgrade()));
         gym.nft().lvlUp(0);
@@ -1290,28 +1289,30 @@ contract MainTest is Test {
         gym.nft().lvlUp(amountBase);
         gym.nft().lvlUp(amountBase);
         vm.stopPrank();
-        
-        uint lvl4_base = gym.nft().getPrice(0);
 
-        uint lvl4_multi = gym.nft().getPrice(amountBase);
+        uint256 lvl4_base = gym.nft().getPrice(0);
+
+        uint256 lvl4_multi = gym.nft().getPrice(amountBase);
 
         assertEq(lvl1_base, baseProductionPerLvl * relationPriceProduction * 1);
-        assertEq(lvl1_multi,boostPercentagePerLvl * baseProductionPerLvl * 1);
+        assertEq(lvl1_multi, boostPercentagePerLvl * baseProductionPerLvl * 1);
         assertEq(lvl4_base, baseProductionPerLvl * relationPriceProduction * 4);
-        assertEq(lvl4_multi,boostPercentagePerLvl * baseProductionPerLvl * 8);
+        assertEq(lvl4_multi, boostPercentagePerLvl * baseProductionPerLvl * 8);
     }
 
-    function testUrisCorrect() external{ 
+    function testUrisCorrect() external {
         string memory base64;
-        
+
         vm.startPrank(randomUser);
         gym.start();
         vm.stopPrank();
 
-        base64 = "data:application/json;base64,eyJuYW1lIjogIlBsYXRlcyAoQmFzZSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8xLnBuZyIsImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjogIkxldmVsIiwgInZhbHVlIjogMX0seyJ0cmFpdF90eXBlIjoiUHJvZHVjdGlvbiIsICJ2YWx1ZSI6IDEwMDB9LHsidHJhaXRfdHlwZSI6ICJVcGdyYWRlX3ByaWNlIiwgInZhbHVlIjogMTAwMDB9XX0=";  
+        base64 =
+            "data:application/json;base64,eyJuYW1lIjogIlBsYXRlcyAoQmFzZSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8xLnBuZyIsImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjogIkxldmVsIiwgInZhbHVlIjogMX0seyJ0cmFpdF90eXBlIjoiUHJvZHVjdGlvbiIsICJ2YWx1ZSI6IDEwMDB9LHsidHJhaXRfdHlwZSI6ICJVcGdyYWRlX3ByaWNlIiwgInZhbHVlIjogMTAwMDB9XX0=";
         assertEq(base64, gym.nft().tokenURI(0));
 
-        base64 = "data:application/json;base64,eyJuYW1lIjogIkNyZWF0aW5lIChNdWx0aSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8xMS5wbmciLCJhdHRyaWJ1dGVzIjogW3sidHJhaXRfdHlwZSI6ICJMZXZlbCIsICJ2YWx1ZSI6IDF9LHsidHJhaXRfdHlwZSI6IkJvb3N0ICglKSIsICJ2YWx1ZSI6IDEwNX0seyJ0cmFpdF90eXBlIjogIlVwZ3JhZGVfcHJpY2UiLCAidmFsdWUiOiA1MDAwfV19";  
+        base64 =
+            "data:application/json;base64,eyJuYW1lIjogIkNyZWF0aW5lIChNdWx0aSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8xMS5wbmciLCJhdHRyaWJ1dGVzIjogW3sidHJhaXRfdHlwZSI6ICJMZXZlbCIsICJ2YWx1ZSI6IDF9LHsidHJhaXRfdHlwZSI6IkJvb3N0ICglKSIsICJ2YWx1ZSI6IDEwNX0seyJ0cmFpdF90eXBlIjogIlVwZ3JhZGVfcHJpY2UiLCAidmFsdWUiOiA1MDAwfV19";
         assertEq(base64, gym.nft().tokenURI(amountBase));
 
         vm.startPrank(address(gym.upgrade()));
@@ -1319,16 +1320,18 @@ contract MainTest is Test {
         gym.nft().lvlUp(amountBase);
         vm.stopPrank();
 
-        base64 = "data:application/json;base64,eyJuYW1lIjogIlBsYXRlcyAoQmFzZSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8yLnBuZyIsImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjogIkxldmVsIiwgInZhbHVlIjogMn0seyJ0cmFpdF90eXBlIjoiUHJvZHVjdGlvbiIsICJ2YWx1ZSI6IDIwMDB9LHsidHJhaXRfdHlwZSI6ICJVcGdyYWRlX3ByaWNlIiwgInZhbHVlIjogMjAwMDB9XX0=";  
+        base64 =
+            "data:application/json;base64,eyJuYW1lIjogIlBsYXRlcyAoQmFzZSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8yLnBuZyIsImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjogIkxldmVsIiwgInZhbHVlIjogMn0seyJ0cmFpdF90eXBlIjoiUHJvZHVjdGlvbiIsICJ2YWx1ZSI6IDIwMDB9LHsidHJhaXRfdHlwZSI6ICJVcGdyYWRlX3ByaWNlIiwgInZhbHVlIjogMjAwMDB9XX0=";
         assertEq(base64, gym.nft().tokenURI(0));
 
-        base64 = "data:application/json;base64,eyJuYW1lIjogIkNyZWF0aW5lIChNdWx0aSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8xMS5wbmciLCJhdHRyaWJ1dGVzIjogW3sidHJhaXRfdHlwZSI6ICJMZXZlbCIsICJ2YWx1ZSI6IDJ9LHsidHJhaXRfdHlwZSI6IkJvb3N0ICglKSIsICJ2YWx1ZSI6IDExMH0seyJ0cmFpdF90eXBlIjogIlVwZ3JhZGVfcHJpY2UiLCAidmFsdWUiOiAxMDAwMH1dfQ==";  
+        base64 =
+            "data:application/json;base64,eyJuYW1lIjogIkNyZWF0aW5lIChNdWx0aSkiLCJkZXNjcmlwdGlvbiI6ICJORlQgb2YgdHljb29uIGd5bSIsImltYWdlIjogImlwZnM6Ly9iYWZ5YmVpYTR2N2VhZHA2cjRudWYzZWk1Y3VjZjYyaHdpZ2FyaTZrYnZicWdna2c1ZTJkZnh3cWh4ZS8xMS5wbmciLCJhdHRyaWJ1dGVzIjogW3sidHJhaXRfdHlwZSI6ICJMZXZlbCIsICJ2YWx1ZSI6IDJ9LHsidHJhaXRfdHlwZSI6IkJvb3N0ICglKSIsICJ2YWx1ZSI6IDExMH0seyJ0cmFpdF90eXBlIjogIlVwZ3JhZGVfcHJpY2UiLCAidmFsdWUiOiAxMDAwMH1dfQ==";
         assertEq(base64, gym.nft().tokenURI(amountBase));
     }
 
-    function testCanNotGetUriOfInexistendNFT() external{ 
+    function testCanNotGetUriOfInexistendNFT() external {
         myNFT a = gym.nft();
-        
+
         vm.startPrank(randomUser);
 
         gym.start();
@@ -1340,8 +1343,8 @@ contract MainTest is Test {
 
     // COMPOSITE FUNCTIONS
 
-    function testRevertsClaimAfterCancelDeposit() external{ 
-        uint NFTid = 0;
+    function testRevertsClaimAfterCancelDeposit() external {
+        uint256 NFTid = 0;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -1351,7 +1354,7 @@ contract MainTest is Test {
         gym.start();
 
         gym.depositToUpgrade(NFTid);
-        
+
         gym.cancelUpgrade(NFTid);
 
         vm.expectRevert(bytes("12"));
@@ -1359,17 +1362,17 @@ contract MainTest is Test {
         gym.claim(NFTid);
 
         vm.stopPrank();
-    } 
+    }
 
-    function testRevertsBuyAfterCancelList() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testRevertsBuyAfterCancelList() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         gym.cancelList(NFTid);
         vm.stopPrank();
 
@@ -1383,18 +1386,18 @@ contract MainTest is Test {
         vm.stopPrank();
     }
 
-    function testGetRewardsAfterSelling() external{ 
-        uint NFTid = 0;
-        uint price = 1;
+    function testGetRewardsAfterSelling() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(randomUser);
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         gym.listNFT(NFTid, price);
-        gym.nft().approve(address(gym.marketplace()), NFTid); 
+        gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.stopPrank();
 
-         vm.startPrank(randomUser2);
+        vm.startPrank(randomUser2);
         gym.start();
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
@@ -1403,22 +1406,21 @@ contract MainTest is Test {
 
         vm.startPrank(randomUser);
 
-        uint tokensBefore = gym.token().balanceOf(randomUser);
+        uint256 tokensBefore = gym.token().balanceOf(randomUser);
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
-        uint tokensAfter = gym.token().balanceOf(randomUser);
-        
-        uint expectedAmount = (amountBase-1) * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser);
 
-        assertEq(tokensAfter - tokensBefore, expectedAmount/100);
+        uint256 expectedAmount = (amountBase - 1) * baseProductionPerLvl * (100 + boostPercentagePerLvl * amountMulti);
+
+        assertEq(tokensAfter - tokensBefore, expectedAmount / 100);
 
         vm.stopPrank();
     }
 
-    function testBuyWhileUpgrading() external{ 
-
-        uint NFTid = 0;
-        uint price = 1;
+    function testBuyWhileUpgrading() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
 
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
@@ -1428,39 +1430,38 @@ contract MainTest is Test {
         gym.start();
 
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
-        (, , bool updatingBefore) = gym.nft().IdToData(NFTid);
+        (,, bool updatingBefore) = gym.nft().IdToData(NFTid);
 
         gym.depositToUpgrade(NFTid);
 
         gym.listNFT(NFTid, price);
         gym.nft().approve(address(gym.marketplace()), NFTid);
         vm.stopPrank();
-        
+
         vm.startPrank(randomUser2);
         gym.start();
         vm.warp(block.timestamp + 2 days);
         gym.getRewards();
-        
+
         gym.buyNFT(NFTid);
-        
-        (, , bool updatingAfter) = gym.nft().IdToData(NFTid);
+
+        (,, bool updatingAfter) = gym.nft().IdToData(NFTid);
         assertFalse(updatingBefore);
         assertTrue(updatingAfter);
-        
-        uint tokensBefore = gym.token().balanceOf(randomUser2);
+
+        uint256 tokensBefore = gym.token().balanceOf(randomUser2);
         gym.cancelUpgrade(NFTid);
-        uint tokensAfter = gym.token().balanceOf(randomUser2);
+        uint256 tokensAfter = gym.token().balanceOf(randomUser2);
         assert(tokensAfter > tokensBefore);
 
         assertEq(gym.nft().ownerOf(NFTid), randomUser2);
-        
+
         vm.stopPrank();
     }
 
-    
-    function testUpgradeWhileSelling() external{
-        uint NFTid = 0;
-        uint price = 1;
+    function testUpgradeWhileSelling() external {
+        uint256 NFTid = 0;
+        uint256 price = 1;
         vm.startPrank(address(gym));
         gym.token().mint(randomUser, 15000);
         vm.stopPrank();
@@ -1469,23 +1470,23 @@ contract MainTest is Test {
         gym.start();
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         gym.listNFT(NFTid, price);
-        
+
         gym.depositToUpgrade(NFTid);
-        (uint8 lvlBefore, , bool updatingBefore) = gym.nft().IdToData(NFTid);
+        (uint8 lvlBefore,, bool updatingBefore) = gym.nft().IdToData(NFTid);
         assertEq(gym.nft().ownerOf(NFTid), randomUser);
         vm.warp(block.timestamp + upgradePeriodPerLvl + 0.5 days);
         gym.claim(NFTid);
 
-        (address lister_, uint price_)  = gym.marketplace().listing(NFTid);
-        assertEq(lister_ ,randomUser);
-        assertEq(price_ , price);
+        (address lister_, uint256 price_) = gym.marketplace().listing(NFTid);
+        assertEq(lister_, randomUser);
+        assertEq(price_, price);
 
         gym.cancelList(NFTid);
-        (address listerAfter_, uint priceAfter_)  = gym.marketplace().listing(NFTid);
-        assertEq(listerAfter_ , address(0));
-        assertEq(priceAfter_ , 0);
+        (address listerAfter_, uint256 priceAfter_) = gym.marketplace().listing(NFTid);
+        assertEq(listerAfter_, address(0));
+        assertEq(priceAfter_, 0);
 
-        (uint8 lvlAfter, , bool updatingAfter) = gym.nft().IdToData(NFTid);
+        (uint8 lvlAfter,, bool updatingAfter) = gym.nft().IdToData(NFTid);
         assert(lvlAfter == lvlBefore + 1);
         assertTrue(updatingBefore);
         assertFalse(updatingAfter);

@@ -15,19 +15,18 @@ import "./ImyNFT.sol";
 import "./IStakeUpgrade.sol";
 import "./ITrades.sol";
 
-
 /// @title MainGym
 /// @author Pol Ribera Moreno
 /// @notice Main contract that connects all game mechanics. Also it give the rewards.
-/// @dev Deploys every game contract and acts as the only entry point for users. 
+/// @dev Deploys every game contract and acts as the only entry point for users.
 ///  We use ReentrancyGuard because we don't accept that two functions are runing at the same time and to avoid vulnerabilities
-contract MainGym is ReentrancyGuard { 
+contract MainGym is ReentrancyGuard {
     ////////////////////////////////////////
     //           DATA STRUCTURES          //
     ////////////////////////////////////////
 
     /// @notice Minimum time between reward claims.
-    uint constant DURATION =  1 days;
+    uint256 constant DURATION = 1 days;
 
     /// @notice ERC20 reward token.
     myToken public immutable token;
@@ -48,10 +47,10 @@ contract MainGym is ReentrancyGuard {
     ITrades public immutable Imarketplace;
 
     /// @notice Indicates whether an address has already started playing.
-    mapping (address => bool) public playing;
+    mapping(address => bool) public playing;
 
     /// @notice Timestamp of the last reward claim for each player.
-    mapping (address => uint) public timeLastReward;
+    mapping(address => uint256) public timeLastReward;
 
     /// @notice constant values that define the game
     uint256 public immutable boostPercentagePerLvl; // 5 (%)
@@ -75,7 +74,7 @@ contract MainGym is ReentrancyGuard {
 
     /// @notice Ensures an action can only be executed once every DURATION time.
     /// @param _last Timestamp of the previous execution.
-    modifier oncePerDay(uint _last) {
+    modifier oncePerDay(uint256 _last) {
         require(block.timestamp > _last + DURATION, "02");
         _;
     }
@@ -90,15 +89,14 @@ contract MainGym is ReentrancyGuard {
 
     /// @notice Emitted when rewards are claimed.
     /// @param _newPlayer Address receiving the rewards.
-    /// @param _amount Amount of reward tokens.    
-    event Reward(address indexed _newPlayer, uint _amount);
-
+    /// @param _amount Amount of reward tokens.
+    event Reward(address indexed _newPlayer, uint256 _amount);
 
     ////////////////////////////////////////
     //             CONSTRUCTOR            //
     ////////////////////////////////////////
 
-    /// @notice Deploys and initializes the entire game ecosystem. 
+    /// @notice Deploys and initializes the entire game ecosystem.
     /// Notice that there are no limitation in the input values, so we trust that the deployer knows what he is doing.
     /// Also the contracts are fixed (no proxis), because we want players to trust in the system.
     /// @param _tokenName ERC20 token name.
@@ -115,26 +113,49 @@ contract MainGym is ReentrancyGuard {
     /// @param _maxLvlMulti Maximum level for multiplier NFTs.
     /// @param _amountBase Initial amount of production NFTs.
     /// @param _amountMulti Initial amount of multiplier NFTs.
-    constructor(string memory _tokenName, string memory _tokenSymbol, string memory _NFTName, string memory _NFTSymbol, string memory _baseUri, uint _feeRefund, uint256 _upgradePeriodPerLvl, uint256 _boostPercentagePerLvl, uint256 _baseProductionPerLvl, uint256 _relationPriceProduction, uint256 _maxLvlBase, uint256 _maxLvlMulti, uint256 _amountBase, uint256 _amountMulti) {
-        
+    constructor(
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        string memory _NFTName,
+        string memory _NFTSymbol,
+        string memory _baseUri,
+        uint256 _feeRefund,
+        uint256 _upgradePeriodPerLvl,
+        uint256 _boostPercentagePerLvl,
+        uint256 _baseProductionPerLvl,
+        uint256 _relationPriceProduction,
+        uint256 _maxLvlBase,
+        uint256 _maxLvlMulti,
+        uint256 _amountBase,
+        uint256 _amountMulti
+    ) {
         boostPercentagePerLvl = _boostPercentagePerLvl;
-        baseProductionPerLvl = _baseProductionPerLvl;   
+        baseProductionPerLvl = _baseProductionPerLvl;
 
-        token = new myToken(_tokenName, _tokenSymbol); 
-        nft = new myNFT(_NFTName, _NFTSymbol, _baseUri, _baseProductionPerLvl, _boostPercentagePerLvl, _relationPriceProduction, _amountBase, _amountMulti);
-        
+        token = new myToken(_tokenName, _tokenSymbol);
+        nft = new myNFT(
+            _NFTName,
+            _NFTSymbol,
+            _baseUri,
+            _baseProductionPerLvl,
+            _boostPercentagePerLvl,
+            _relationPriceProduction,
+            _amountBase,
+            _amountMulti
+        );
+
         Itoken = IMyToken(address(token));
         Inft = IMyNFT(address(nft));
-        
+
         upgrade = new StakeUpgrade(Itoken, Inft, _feeRefund, _upgradePeriodPerLvl, _maxLvlBase, _maxLvlMulti);
         marketplace = new Trades(Itoken, Inft, _relationPriceProduction);
 
         token.setUpgrade(address(upgrade));
-        nft.setUpgrade(address(upgrade));  
+        nft.setUpgrade(address(upgrade));
 
         token.setTrades(address(marketplace));
-        nft.setTrades(address(marketplace));  
-        
+        nft.setTrades(address(marketplace));
+
         Iupgrade = IStakeUpgrade(address(upgrade));
         Imarketplace = ITrades(address(marketplace));
     }
@@ -154,30 +175,29 @@ contract MainGym is ReentrancyGuard {
     /// @notice Give to the player the daily token rewards.
     /// @dev Rewards are calculated using all owned NFTs that are not upgrading.
     /// To do the calculations prooperly, it is used 100 to save 2 decimals.
-    function getRewards() external oncePerDay(timeLastReward[msg.sender]) yesPlaying nonReentrant{
+    function getRewards() external oncePerDay(timeLastReward[msg.sender]) yesPlaying nonReentrant {
         timeLastReward[msg.sender] = block.timestamp;
-        uint balance_ = Inft.balanceOf(msg.sender);
-        uint base_ = 0;
-        uint multiply_ = 100;
-        
+        uint256 balance_ = Inft.balanceOf(msg.sender);
+        uint256 base_ = 0;
+        uint256 multiply_ = 100;
+
         for (uint256 i = 0; i < balance_; i++) {
             uint256 tokenId_ = Inft.tokenOfOwnerByIndex(msg.sender, i);
             (uint8 _lvl, bool _multi, bool _upgrading) = Inft.IdToData(tokenId_);
-            if (!_upgrading){
-                if (_multi){
+            if (!_upgrading) {
+                if (_multi) {
                     multiply_ *= (100 + boostPercentagePerLvl * _lvl);
                     multiply_ /= 100;
-                } else{
+                } else {
                     base_ += baseProductionPerLvl * _lvl;
                 }
             }
         }
-        uint reward_ = (base_ * multiply_) / 100;
+        uint256 reward_ = (base_ * multiply_) / 100;
         Itoken.mint(msg.sender, reward_);
 
         emit Reward(msg.sender, reward_);
     }
-
 
     ////////////////////////////////////////
     //         MARKETPLACE WRAPPER        //
@@ -186,19 +206,19 @@ contract MainGym is ReentrancyGuard {
     /// @notice Lists an NFT for sale in the marketplace.
     /// @param _tokenId NFT identifier.
     /// @param _price Sale price.
-    function listNFT( uint256 _tokenId, uint256 _price) external yesPlaying nonReentrant{
-        Imarketplace.listNFT(msg.sender, _tokenId, _price); 
+    function listNFT(uint256 _tokenId, uint256 _price) external yesPlaying nonReentrant {
+        Imarketplace.listNFT(msg.sender, _tokenId, _price);
     }
 
     /// @notice Cancels an active NFT listing.
     /// @param _tokenId NFT identifier.
-    function cancelList(uint256 _tokenId) external yesPlaying nonReentrant{
+    function cancelList(uint256 _tokenId) external yesPlaying nonReentrant {
         Imarketplace.cancelList(msg.sender, _tokenId);
     }
 
     /// @notice Purchases a listed NFT.
     /// @param _tokenId NFT identifier.
-    function buyNFT(uint256 _tokenId) external yesPlaying nonReentrant{
+    function buyNFT(uint256 _tokenId) external yesPlaying nonReentrant {
         Imarketplace.buyNFT(msg.sender, _tokenId);
     }
 
@@ -208,19 +228,19 @@ contract MainGym is ReentrancyGuard {
 
     /// @notice Deposits an NFT to be upgraded.
     /// @param _tokenId NFT identifier.
-    function depositToUpgrade(uint256 _tokenId) external yesPlaying nonReentrant{ 
+    function depositToUpgrade(uint256 _tokenId) external yesPlaying nonReentrant {
         upgrade.depositToUpgrade(msg.sender, _tokenId);
     }
 
     /// @notice Cancels an ongoing upgrade.
     /// @param _tokenId NFT identifier.
-    function cancelUpgrade(uint256 _tokenId) external yesPlaying nonReentrant{
+    function cancelUpgrade(uint256 _tokenId) external yesPlaying nonReentrant {
         upgrade.cancelUpgrade(msg.sender, _tokenId);
     }
 
     /// @notice Claims a completed upgrade. Levels Up the NFT.
     /// @param _tokenId NFT identifier.
-    function claim(uint256 _tokenId) external yesPlaying nonReentrant{
+    function claim(uint256 _tokenId) external yesPlaying nonReentrant {
         upgrade.claim(msg.sender, _tokenId);
     }
 }

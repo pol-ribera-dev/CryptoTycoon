@@ -10,19 +10,18 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 /// @dev Tokens are minted as player rewards and consumed by game mechanics
 /// such as NFT upgrades and marketplace purchases.
 contract myToken is ERC20 {
-
     ////////////////////////////////////////
     //           DATA STRUCTURES          //
     ////////////////////////////////////////
 
     /// @notice The address of the others contracts.
-    address public upgrade; 
-    address public trades; 
-    address public master; 
+    address public upgrade;
+    address public trades;
+    address public master;
 
     ////////////////////////////////////////
     //              MODIFIERS             //
-    ////////////////////////////////////////    
+    ////////////////////////////////////////
 
     /// @notice Restricts access to the Main contract.
     modifier onlyMaster() {
@@ -32,12 +31,12 @@ contract myToken is ERC20 {
 
     /// @notice Restricts access to the Upgrade and Marketplace contracts.
     modifier onlyOthers() {
-        require(upgrade == msg.sender || trades == msg.sender , "08");
+        require(upgrade == msg.sender || trades == msg.sender, "08");
         _;
     }
 
     /// @notice Restricts access to authorized contracts.
-    modifier onlyAllowed(){
+    modifier onlyAllowed() {
         require(upgrade == msg.sender || master == msg.sender || trades == msg.sender, "08");
         _;
     }
@@ -45,7 +44,7 @@ contract myToken is ERC20 {
     ////////////////////////////////////////
     //             CONSTRUCTOR            //
     ////////////////////////////////////////
-    
+
     /// @notice Deploys the ERC20 reward token.
     /// @param _name ERC20 token name.
     /// @param _symbol ERC20 token symbol.
@@ -55,7 +54,7 @@ contract myToken is ERC20 {
 
     ////////////////////////////////////////
     //         EXTERNAL FUNCTIONS         //
-    ////////////////////////////////////////    
+    ////////////////////////////////////////
 
     /// @notice Mints tokens to a user.
     /// @dev Can only be called by authorized game contracts.
@@ -74,13 +73,13 @@ contract myToken is ERC20 {
 
     /// @notice Sets the authorized Upgrade contract.
     /// @param _upgrade Upgrade contract address.
-    function setUpgrade (address _upgrade) external onlyMaster {
+    function setUpgrade(address _upgrade) external onlyMaster {
         upgrade = _upgrade;
     }
 
     /// @notice Sets the authorized Marketplace contract.
     /// @param _trades Marketplace contract address.
-    function setTrades (address _trades) external onlyMaster {
+    function setTrades(address _trades) external onlyMaster {
         trades = _trades;
     }
 }

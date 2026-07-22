@@ -10,9 +10,9 @@ import "./ImyNFT.sol";
 /// @author Pol Ribera Moreno
 /// @notice Marketplace for trading game NFTs.
 /// @dev All interactions are performed through the Main contract. Buyers pay
-/// the listed price plus an additional penalty based on the NFT production to avoid players 
-/// claim two times the same NFT reward that day. 
-contract Trades{
+/// the listed price plus an additional penalty based on the NFT production to avoid players
+/// claim two times the same NFT reward that day.
+contract Trades {
     ////////////////////////////////////////
     //           DATA STRUCTURES          //
     ////////////////////////////////////////
@@ -24,8 +24,10 @@ contract Trades{
 
     /// @notice constant value that define the game
     uint256 public immutable relationPriceProduction;
+
     /// @notice Information about an active NFT listing.
     struct Listing {
+
 
         /// @notice Address selling the NFT.
         address seller;
@@ -61,23 +63,23 @@ contract Trades{
     /// @param seller NFT owner.
     /// @param tokenId NFT identifier.
     event NFTCancelled(address indexed seller, uint256 indexed tokenId);
-    
+
     /// @notice Emitted when an NFT is purchased.
     /// @param buyer Address purchasing the NFT.
     /// @param seller Previous NFT owner.
     /// @param tokenId NFT identifier.
     /// @param price Sale price paid to the seller.
     event NFTSold(address indexed buyer, address indexed seller, uint256 tokenId, uint256 price);
-    
+
     ////////////////////////////////////////
     //             CONSTRUCTOR            //
-    ////////////////////////////////////////    
+    ////////////////////////////////////////
 
     /// @notice Deploys the marketplace contract.
     /// @param _token ERC20 reward token.
     /// @param _nft ERC721 game NFT.
     /// @param _relationPriceProduction Ratio used to calculate the purchase penalty.
-    constructor(IMyToken _token, IMyNFT _nft, uint _relationPriceProduction) {
+    constructor(IMyToken _token, IMyNFT _nft, uint256 _relationPriceProduction) {
         token = _token;
         nft = _nft;
         relationPriceProduction = _relationPriceProduction;
@@ -98,10 +100,7 @@ contract Trades{
         address owner_ = nft.ownerOf(_tokenId);
         require(owner_ == _user, "03");
 
-        Listing memory listing_ = Listing({
-            seller: _user,
-            price: _price
-        });
+        Listing memory listing_ = Listing({seller: _user, price: _price});
 
         listing[_tokenId] = listing_;
 
@@ -111,7 +110,7 @@ contract Trades{
     /// @notice Cancels an active listing.
     /// @param _user Seller address.
     /// @param _tokenId NFT identifier.
-    function cancelList(address _user, uint256 _tokenId) external onlyMaster { 
+    function cancelList(address _user, uint256 _tokenId) external onlyMaster {
         Listing memory listing_ = listing[_tokenId];
         require(listing_.seller == _user, "05");
 
@@ -124,19 +123,19 @@ contract Trades{
     /// based on the NFT production. Needs the approve of the seller().
     /// @param _user Buyer address.
     /// @param _tokenId NFT identifier.
-    function buyNFT(address _user, uint256 _tokenId) external onlyMaster { 
+    function buyNFT(address _user, uint256 _tokenId) external onlyMaster {
         Listing memory listing_ = listing[_tokenId];
         require(listing_.price > 0, "04");
 
-        uint extraPrice_ = nft.getPrice(_tokenId) / relationPriceProduction;
-        
+        uint256 extraPrice_ = nft.getPrice(_tokenId) / relationPriceProduction;
+
         token.burn(_user, listing_.price + extraPrice_);
         token.mint(listing_.seller, listing_.price);
 
         delete listing[_tokenId];
 
         nft.safeTransferFrom(listing_.seller, _user, _tokenId);
-        
+
         emit NFTSold(_user, listing_.seller, _tokenId, listing_.price);
     }
 }

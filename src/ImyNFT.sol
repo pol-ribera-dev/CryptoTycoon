@@ -3,7 +3,6 @@
 pragma solidity 0.8.24;
 
 interface IMyNFT {
-
     struct TokenData {
         int8 lvl;
         bool multi;
@@ -16,7 +15,7 @@ interface IMyNFT {
 
     function ownerOf(uint256 tokenId) external view returns (address);
 
-    function balanceOf(address owner) external view returns (uint256); 
+    function balanceOf(address owner) external view returns (uint256);
 
     function getPrice(uint256 tokenId) external returns (uint256);
 
@@ -27,5 +26,4 @@ interface IMyNFT {
     function IdToData(uint256 tokenId) external view returns (uint8 lvl, bool multi, bool upgrading);
 
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
-
 }
